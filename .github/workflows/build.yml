@@ -78,14 +78,14 @@ jobs:
 
       - name: Configure MinIO
         run: |
-          mc alias set myminio ${{ secrets.MINIO_ENDPOINT }} \
+          mc alias set gh-deploy ${{ secrets.MINIO_ENDPOINT }} \
           ${{ secrets.MINIO_ACCESS_KEY }} \
           ${{ secrets.MINIO_SECRET_KEY }}
           
       - name: Upload to MinIO
         run: |
           mc cp build-mobile-${{ github.event.inputs.version }}.zip \
-          myminio/${{ secrets.MINIO_BUCKET }}/view/${{ github.event.inputs.version }}/build-mobile.zip
+          gh-deploy/${{ secrets.MINIO_BUCKET }}/${{ github.event.inputs.version }}/build-mobile-${{ github.event.inputs.version }}.zip
         env:
           MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
           MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
