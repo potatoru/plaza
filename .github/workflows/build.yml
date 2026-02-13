@@ -1,0 +1,68 @@
+name: Build View Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Build version (e.g. 236)'
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      # --- BUILD APP ---
+      - name: Build app version
+        run: |
+          rm -rf dist
+          VITE_APP=app yarn build
+          mv dist dist-app
+
+      # --- BUILD MOBILE ---
+      - name: Build mobile version
+        run: |
+          rm -rf dist
+          VITE_APP=mobile yarn build
+          mv dist dist-mobile
+
+      # --- ZIP APP ---
+      - name: Zip app build
+        run: |
+          cd dist-app
+          zip -r ../build-app-${{ github.event.inputs.version }}.zip .
+          cd ..
+
+      # --- ZIP MOBILE ---
+      - name: Zip mobile build
+        run: |
+          cd dist-mobile
+          zip -r ../build-mobile-${{ github.event.inputs.version }}.zip .
+          cd ..
+
+      # --- CREATE RELEASE ---
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          name: v${{ github.event.inputs.version }}
+          draft: false
+          prerelease: false
+          files: |
+            view-app-${{ github.event.inputs.version }}.zip
+            view-mobile-${{ github.event.inputs.version }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
