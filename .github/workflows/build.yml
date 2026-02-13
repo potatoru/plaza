@@ -66,3 +66,27 @@ jobs:
             build-mobile-${{ github.event.inputs.version }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # --- UPLOAD TO S3 ---
+      - name: Install AWS CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y awscli
+
+      - name: Configure S3 credentials
+        run: |
+          aws configure set aws_access_key_id $MINIO_ACCESS_KEY
+          aws configure set aws_secret_access_key $MINIO_SECRET_KEY
+          aws configure set default.region us-east-1
+        env:
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+
+      - name: Upload mobile build to MinIO
+        run: |
+          aws s3 cp build-mobile-${{ github.event.inputs.version }}.zip \
+            s3://${MINIO_BUCKET}/view/${{ github.event.inputs.version }}/build-mobile.zip \
+            --endpoint-url $MINIO_ENDPOINT
+        env:
+          MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
