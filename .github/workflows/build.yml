@@ -66,27 +66,26 @@ jobs:
             build-mobile-${{ github.event.inputs.version }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # --- UPLOAD TO S3 ---
-      - name: Install AWS CLI
+    
+      # --- UPLOAD RELEASE TO S3 ---
+      - name: Install MinIO client
         run: |
-          sudo apt-get update
-          sudo apt-get install -y awscli
+          curl https://dl.min.io/client/mc/release/linux-amd64/mc \
+          --create-dirs \
+          -o $HOME/minio-binaries/mc
+          chmod +x $HOME/minio-binaries/mc
+          echo "$HOME/minio-binaries" >> $GITHUB_PATH
 
-      - name: Configure S3 credentials
+      - name: Configure MinIO
         run: |
-          aws configure set aws_access_key_id $MINIO_ACCESS_KEY
-          aws configure set aws_secret_access_key $MINIO_SECRET_KEY
-          aws configure set default.region us-east-1
-        env:
-          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
-          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
-
-      - name: Upload mobile build to MinIO
+          mc alias set myminio ${{ secrets.MINIO_ENDPOINT }} \
+          ${{ secrets.MINIO_ACCESS_KEY }} \
+          ${{ secrets.MINIO_SECRET_KEY }}
+          
+      - name: Upload to MinIO
         run: |
-          aws s3 cp build-mobile-${{ github.event.inputs.version }}.zip \
-            s3://${MINIO_BUCKET}/view/${{ github.event.inputs.version }}/build-mobile.zip \
-            --endpoint-url $MINIO_ENDPOINT
+          mc cp build-mobile-${{ github.event.inputs.version }}.zip \
+          myminio/${{ secrets.MINIO_BUCKET }}/view/${{ github.event.inputs.version }}/build-mobile.zip
         env:
           MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
           MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
